@@ -1,0 +1,71 @@
+[data-wm-plugin="load"][data-full-width] {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+
+/*Fix Classic block spacing in Fluid Engine*/
+[data-wm-plugin="load"] .sqs-layout .sqs-block{
+  width: 100%;
+  box-sizing: border-box;
+}
+[data-wm-plugin="load"] .fe-block > .sqs-block {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+[data-wm-plugin="load"] .sqs-layout .fe-block > .sqs-block {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+
+/*Remove padding-top from first section*/
+[data-wm-plugin="load"] > section.page-section{
+  padding-top: 0 !important;
+}
+
+/*Force Images*/
+[data-wm-plugin="load"] .sqs-block-calendar img[data-parent-ratio],
+[data-wm-plugin="load"] .sqs-block-gallery img[data-parent-ratio],
+[data-wm-plugin="load"] .sqs-block-summary-v2 .summary-block-wrapper:not(.sqs-gallery-design-autocolumns) img[data-parent-ratio] {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  object-position: var(--wm-focal-point, center) !important;
+}
+[data-wm-plugin="load"] .sqs-block-gallery .content-fit img[data-parent-ratio]{
+  object-position: unset !important;
+}
+
+[data-wm-plugin="load"] .sqs-block-gallery .image-slide-anchor{
+  position: relative;
+}
+[data-wm-plugin="load"] .sqs-block-gallery .content-fit img[data-parent-ratio]{
+  object-fit: contain !important;
+}
+
+.sqs-edit-mode-active .sqs-block-code:has([data-wm-plugin="load"]) {
+  border: 1px dashed var(--paragraphMediumColor);
+}
+
+.sqs-edit-mode-active .sqs-block-code [data-wm-plugin="load"]:after {
+  content: "WM Section Loader " attr(data-source);
+  display: grid;
+  place-items: center;
+  padding: 0px 8px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--siteBackgroundColor);
+  background-color: var(--paragraphMediumColor);
+  position: absolute;
+  top: 0;
+  left: 0;
+}
