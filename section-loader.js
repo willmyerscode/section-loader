@@ -6,13 +6,8 @@ class WMSectionLoaderManager {
     ERROR: "error",
   };
   static defaultSettings = {
-    cacheDuration: 5, // minutes
-    hooks: {
-      beforeInit: [],
-      afterInit: [],
-      beforeLoad: [],
-      afterLoad: [],
-    },
+
+    
   };
   static get userSettings() {
     return window["wmSectionLoaderSettings"] || {};
@@ -66,9 +61,7 @@ class WMSectionLoaderManager {
   }
 
   constructor() {
-    this.cache = new Map();
     this.instances = new WeakMap();
-    this.pendingFetches = new Map();
   }
 
   setState(el, state) {
@@ -106,12 +99,6 @@ class WMSectionLoaderManager {
     if (onComplete) onComplete();
   }
 
-  isCacheValid(timestamp, duration) {
-    const now = new Date().getTime();
-    const cacheAge = (now - timestamp) / (1000 * 60); // Convert to minutes
-    return cacheAge < duration;
-  }
-
   async fetchAndInsert(el) {
     const src = el.dataset.source || el.dataset.target;
     if (!src) {
@@ -120,45 +107,25 @@ class WMSectionLoaderManager {
     }
 
     this.setState(el, WMSectionLoaderManager.states.LOADING);
-    const instance = this.instances.get(el);
 
     try {
-      // Check cache first
-      const cached = this.cache.get(src);
-      if (cached && this.isCacheValid(cached.timestamp, instance.settings.cacheDuration)) {
-        el.innerHTML = cached.content;
-        this.checkFullWidth(el);
-        this.setState(el, WMSectionLoaderManager.states.COMPLETE);
-        return;
-      }
+      const [url, ...args] = src.split(' ');
+      const hasSelector = args.length > 0;
+      
+      const content = hasSelector
+        ? await wm$.getFragment(url, args.join(' '))
+        : await wm$.getFragment(url, "#sections");
 
-      // Check if there's already a pending fetch for this URL
-      let fetchPromise = this.pendingFetches.get(src);
-      let hasSelector = false;
-      if (!fetchPromise) {
-        // If no pending fetch, create a new one
-        const [url, ...args] = src.split(' ');
-        hasSelector = args.length > 0;
-        fetchPromise = hasSelector
-          ? wm$.getFragment(url, args.join(' '))
-          : wm$.getFragment(url);
-        this.pendingFetches.set(src, fetchPromise);
-        
-        // Clean up pending fetch after it completes
-        fetchPromise.finally(() => {
-          this.pendingFetches.delete(src);
+      el.innerHTML = "";
+      
+      if (hasSelector) {
+        el.appendChild(content);
+      } else {
+        // Append all sections from the fetched content
+        content.querySelectorAll('section').forEach(section => {
+          el.appendChild(section);
         });
       }
-
-      const html = await fetchPromise;  
-      const content = html.isConnected ? html.cloneNode(true) : html;
-      hasSelector ? el.appendChild(content) : content.querySelectorAll('#sections > *').forEach(child => el.appendChild(child));
-
-      // Update cache
-      this.cache.set(src, {
-        content: html,
-        timestamp: new Date().getTime(),
-      });
 
       this.checkFullWidth(el);
       this.setState(el, WMSectionLoaderManager.states.COMPLETE);
@@ -182,17 +149,20 @@ class WMSectionLoaderManager {
     const loadingPromises = Array.from(allLoaders).map(loader => {
       return new Promise(resolve => {
         if (
-          loader.dataset.loadingState === WMSectionLoaderManager.states.COMPLETE
+          loader.dataset.loadingState === WMSectionLoaderManager.states.COMPLETE ||
+          loader.dataset.loadingState === WMSectionLoaderManager.states.ERROR
         ) {
           resolve();
         } else {
-          console.log('waiting on state change');
           loader.addEventListener(
             "stateChange",
             e => {
-              console.log('stateChange', e.detail.state);
-              if (e.detail.state === WMSectionLoaderManager.states.COMPLETE)
+              if (
+                e.detail.state === WMSectionLoaderManager.states.COMPLETE ||
+                e.detail.state === WMSectionLoaderManager.states.ERROR
+              ) {
                 resolve();
+              }
             },
             {once: true}
           );
@@ -202,6 +172,8 @@ class WMSectionLoaderManager {
 
     await Promise.all(loadingPromises);
     await wm$.reloadSquarespaceLifecycle(Array.from(allLoaders));
+    // await wm$.initializeAllPlugins()
+
   }
 
   getInstance(el) {
