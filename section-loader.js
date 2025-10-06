@@ -80,6 +80,7 @@ class WMSectionLoaderManager {
     }
 
     const promises = Array.from(loadEls).map(el => {
+      el.classList.add('wm-load-container');
       const settings = wm$.deepMerge(
         {},
         WMSectionLoaderManager.defaultSettings,
